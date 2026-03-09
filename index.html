@@ -44,7 +44,7 @@ cursor:pointer;
 <canvas id="canvas" width="800" height="600"></canvas>
 
 <div>
-<button onclick="clearCanvas()">Apagar</button>
+<button onclick="undoLine()">Apagar última linha</button>
 <button onclick="download()">Baixar Planta</button>
 </div>
 
@@ -58,9 +58,11 @@ let startX,startY;
 
 const grid=40;
 
+// lista de linhas
+let lines=[];
+
 function drawGrid(){
 
-// fundo branco real
 ctx.fillStyle="white";
 ctx.fillRect(0,0,canvas.width,canvas.height);
 
@@ -79,6 +81,22 @@ ctx.moveTo(0,y);
 ctx.lineTo(canvas.width,y);
 ctx.stroke();
 }
+
+}
+
+function redraw(){
+
+drawGrid();
+
+ctx.strokeStyle="black";
+ctx.lineWidth=4;
+
+lines.forEach(line=>{
+ctx.beginPath();
+ctx.moveTo(line.x1,line.y1);
+ctx.lineTo(line.x2,line.y2);
+ctx.stroke();
+});
 
 }
 
@@ -106,26 +124,27 @@ const rect=canvas.getBoundingClientRect();
 let endX=Math.round((e.clientX-rect.left)/grid)*grid;
 let endY=Math.round((e.clientY-rect.top)/grid)*grid;
 
-ctx.strokeStyle="black";
-ctx.lineWidth=4;
+// salva linha
+lines.push({
+x1:startX,
+y1:startY,
+x2:endX,
+y2:endY
+});
 
-ctx.beginPath();
-ctx.moveTo(startX,startY);
-ctx.lineTo(endX,endY);
-ctx.stroke();
+redraw();
 
 });
 
-function clearCanvas(){
+function undoLine(){
 
-ctx.clearRect(0,0,canvas.width,canvas.height);
-drawGrid();
+lines.pop(); // remove última linha
+redraw();
 
 }
 
 function download(){
 
-// cria um canvas temporário para garantir fundo branco
 const tempCanvas=document.createElement("canvas");
 const tempCtx=tempCanvas.getContext("2d");
 

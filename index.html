@@ -31,9 +31,13 @@ touch-action:none;
 background:white;
 }
 
-button{
+.controls{
 margin:10px;
-padding:12px 20px;
+}
+
+button{
+margin:5px;
+padding:10px 15px;
 font-size:18px;
 cursor:pointer;
 border:none;
@@ -50,9 +54,13 @@ border-radius:6px;
 
 <canvas id="canvas"></canvas>
 
-<div>
+<div class="controls">
+
+<button onclick="zoomIn()">🔍+</button>
+<button onclick="zoomOut()">🔍-</button>
 <button onclick="undoLine()">Apagar última linha</button>
 <button onclick="download()">Baixar Planta</button>
+
 </div>
 
 <script>
@@ -62,6 +70,8 @@ const ctx=canvas.getContext("2d");
 
 const grid=40;
 const snapDistance=20;
+
+let zoom=1;
 
 let lines=[];
 let texts=[];
@@ -85,10 +95,32 @@ window.addEventListener("resize",resizeCanvas);
 
 resizeCanvas();
 
+function zoomIn(){
+
+zoom+=0.2;
+redraw();
+
+}
+
+function zoomOut(){
+
+zoom-=0.2;
+
+if(zoom<0.4){
+zoom=0.4;
+}
+
+redraw();
+
+}
+
 function drawGrid(){
 
 ctx.fillStyle="white";
 ctx.fillRect(0,0,canvas.width,canvas.height);
+
+ctx.save();
+ctx.scale(zoom,zoom);
 
 for(let x=0;x<canvas.width;x+=grid){
 
@@ -134,11 +166,16 @@ ctx.stroke();
 
 }
 
+ctx.restore();
+
 }
 
 function redraw(){
 
 drawGrid();
+
+ctx.save();
+ctx.scale(zoom,zoom);
 
 ctx.strokeStyle="#111";
 ctx.lineWidth=6;
@@ -171,146 +208,54 @@ ctx.fillText(t.text,t.x,t.y);
 
 });
 
-}
-
-function snapToLine(x,y){
-
-for(let line of lines){
-
-if(Math.abs(x-line.x1)<snapDistance && Math.abs(y-line.y1)<snapDistance){
-return {x:line.x1,y:line.y1};
-}
-
-if(Math.abs(x-line.x2)<snapDistance && Math.abs(y-line.y2)<snapDistance){
-return {x:line.x2,y:line.y2};
-}
+ctx.restore();
 
 }
 
-return {x,y};
+function getMousePos(e){
 
-}
+const rect=canvas.getBoundingClientRect();
 
-function findText(x,y){
+return{
 
-for(let t of texts){
+x:(e.clientX-rect.left)/zoom,
+y:(e.clientY-rect.top)/zoom
 
-let width=ctx.measureText(t.text).width;
-let height=20;
-
-if(x>t.x && x<t.x+width && y<t.y && y>t.y-height){
-return t;
-}
-
-}
-
-return null;
+};
 
 }
 
 canvas.addEventListener("pointerdown",(e)=>{
 
-const rect=canvas.getBoundingClientRect();
+let pos=getMousePos(e);
 
-let x=e.clientX-rect.left;
-let y=e.clientY-rect.top;
+let x=pos.x;
+let y=pos.y;
 
-let textHit=findText(x,y);
-
-if(textHit){
-
-holdTimer=setTimeout(()=>{
-
-draggingText=textHit;
-
-},500);
-
-return;
-
-}
-
-let snapped=snapToLine(x,y);
-
-startX=Math.round(snapped.x/grid)*grid;
-startY=Math.round(snapped.y/grid)*grid;
+startX=Math.round(x/grid)*grid;
+startY=Math.round(y/grid)*grid;
 
 moved=false;
-
-holdTimer=setTimeout(()=>{
-
-let clickedLine=findLine(x,y);
-
-let value=prompt("Digite medida ou nome (Ex: 3.50m, Sala)");
-
-if(value){
-
-if(clickedLine){
-
-clickedLine.text=value;
-
-}else{
-
-texts.push({
-text:value,
-x:x,
-y:y
-});
-
-}
-
-redraw();
-
-}
-
-},1000);
 
 });
 
 canvas.addEventListener("pointermove",(e)=>{
 
-const rect=canvas.getBoundingClientRect();
-
-let x=e.clientX-rect.left;
-let y=e.clientY-rect.top;
-
-if(draggingText){
-
-draggingText.x=x;
-draggingText.y=y;
-
-redraw();
-
-return;
-
-}
-
 moved=true;
-clearTimeout(holdTimer);
 
 });
 
 canvas.addEventListener("pointerup",(e)=>{
 
-clearTimeout(holdTimer);
-
-if(draggingText){
-
-draggingText=null;
-return;
-
-}
-
 if(!moved) return;
 
-const rect=canvas.getBoundingClientRect();
+let pos=getMousePos(e);
 
-let x=e.clientX-rect.left;
-let y=e.clientY-rect.top;
+let x=pos.x;
+let y=pos.y;
 
-let snapped=snapToLine(x,y);
-
-let endX=Math.round(snapped.x/grid)*grid;
-let endY=Math.round(snapped.y/grid)*grid;
+let endX=Math.round(x/grid)*grid;
+let endY=Math.round(y/grid)*grid;
 
 lines.push({
 x1:startX,
@@ -323,57 +268,6 @@ text:""
 redraw();
 
 });
-
-function findLine(x,y){
-
-for(let line of lines){
-
-let dist=distanceToLine(x,y,line);
-
-if(dist<10){
-return line;
-}
-
-}
-
-return null;
-
-}
-
-function distanceToLine(px,py,line){
-
-let x1=line.x1;
-let y1=line.y1;
-let x2=line.x2;
-let y2=line.y2;
-
-let A=px-x1;
-let B=py-y1;
-let C=x2-x1;
-let D=y2-y1;
-
-let dot=A*C+B*D;
-let len=C*C+D*D;
-
-let param=dot/len;
-
-let xx,yy;
-
-if(param<0){
-xx=x1; yy=y1;
-}else if(param>1){
-xx=x2; yy=y2;
-}else{
-xx=x1+param*C;
-yy=y1+param*D;
-}
-
-let dx=px-xx;
-let dy=py-yy;
-
-return Math.sqrt(dx*dx+dy*dy);
-
-}
 
 function undoLine(){
 

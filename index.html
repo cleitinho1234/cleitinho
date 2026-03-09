@@ -51,10 +51,8 @@ border-radius:6px;
 <canvas id="canvas"></canvas>
 
 <div>
-
 <button onclick="undoLine()">Apagar última linha</button>
 <button onclick="download()">Baixar Planta</button>
-
 </div>
 
 <script>
@@ -178,15 +176,11 @@ function snapToLine(x,y){
 for(let line of lines){
 
 if(Math.abs(x-line.x1)<snapDistance && Math.abs(y-line.y1)<snapDistance){
-
 return {x:line.x1,y:line.y1};
-
 }
 
 if(Math.abs(x-line.x2)<snapDistance && Math.abs(y-line.y2)<snapDistance){
-
 return {x:line.x2,y:line.y2};
-
 }
 
 }
@@ -310,20 +304,12 @@ let param=dot/len;
 let xx,yy;
 
 if(param<0){
-
-xx=x1;
-yy=y1;
-
+xx=x1; yy=y1;
 }else if(param>1){
-
-xx=x2;
-yy=y2;
-
+xx=x2; yy=y2;
 }else{
-
 xx=x1+param*C;
 yy=y1+param*D;
-
 }
 
 let dx=px-xx;
@@ -342,6 +328,25 @@ redraw();
 
 function download(){
 
+let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+
+lines.forEach(l=>{
+minX=Math.min(minX,l.x1,l.x2);
+minY=Math.min(minY,l.y1,l.y2);
+maxX=Math.max(maxX,l.x1,l.x2);
+maxY=Math.max(maxY,l.y1,l.y2);
+});
+
+texts.forEach(t=>{
+minX=Math.min(minX,t.x);
+minY=Math.min(minY,t.y);
+maxX=Math.max(maxX,t.x);
+maxY=Math.max(maxY,t.y);
+});
+
+let drawWidth=maxX-minX;
+let drawHeight=maxY-minY;
+
 const tempCanvas=document.createElement("canvas");
 const tempCtx=tempCanvas.getContext("2d");
 
@@ -351,6 +356,10 @@ tempCanvas.height=canvas.height;
 tempCtx.fillStyle="white";
 tempCtx.fillRect(0,0,tempCanvas.width,tempCanvas.height);
 
+let offsetX=(tempCanvas.width-drawWidth)/2-minX;
+let offsetY=(tempCanvas.height-drawHeight)/2-minY;
+
+tempCtx.translate(offsetX,offsetY);
 tempCtx.drawImage(canvas,0,0);
 
 const link=document.createElement("a");

@@ -57,11 +57,11 @@ border-radius:6px;
 
 <script>
 
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
+const canvas=document.getElementById("canvas");
+const ctx=canvas.getContext("2d");
 
-const grid = 40;
-const snapDistance = 20;
+const grid=40;
+const snapDistance=20;
 
 let lines=[];
 let texts=[];
@@ -70,16 +70,18 @@ let startX,startY;
 let moved=false;
 let holdTimer=null;
 
+let draggingText=null;
+
 function resizeCanvas(){
 
-canvas.width = window.innerWidth * 0.95;
-canvas.height = window.innerHeight * 0.65;
+canvas.width=window.innerWidth*0.95;
+canvas.height=window.innerHeight*0.65;
 
 redraw();
 
 }
 
-window.addEventListener("resize", resizeCanvas);
+window.addEventListener("resize",resizeCanvas);
 
 resizeCanvas();
 
@@ -92,7 +94,7 @@ for(let x=0;x<canvas.width;x+=grid){
 
 ctx.beginPath();
 
-if(x % (grid*5) === 0){
+if(x%(grid*5)===0){
 
 ctx.strokeStyle="#666";
 ctx.lineWidth=2;
@@ -114,7 +116,7 @@ for(let y=0;y<canvas.height;y+=grid){
 
 ctx.beginPath();
 
-if(y % (grid*5) === 0){
+if(y%(grid*5)===0){
 
 ctx.strokeStyle="#666";
 ctx.lineWidth=2;
@@ -189,12 +191,43 @@ return {x,y};
 
 }
 
+function findText(x,y){
+
+for(let t of texts){
+
+let width=ctx.measureText(t.text).width;
+let height=20;
+
+if(x>t.x && x<t.x+width && y<t.y && y>t.y-height){
+return t;
+}
+
+}
+
+return null;
+
+}
+
 canvas.addEventListener("pointerdown",(e)=>{
 
 const rect=canvas.getBoundingClientRect();
 
 let x=e.clientX-rect.left;
 let y=e.clientY-rect.top;
+
+let textHit=findText(x,y);
+
+if(textHit){
+
+holdTimer=setTimeout(()=>{
+
+draggingText=textHit;
+
+},500);
+
+return;
+
+}
 
 let snapped=snapToLine(x,y);
 
@@ -233,7 +266,23 @@ redraw();
 
 });
 
-canvas.addEventListener("pointermove",()=>{
+canvas.addEventListener("pointermove",(e)=>{
+
+const rect=canvas.getBoundingClientRect();
+
+let x=e.clientX-rect.left;
+let y=e.clientY-rect.top;
+
+if(draggingText){
+
+draggingText.x=x;
+draggingText.y=y;
+
+redraw();
+
+return;
+
+}
 
 moved=true;
 clearTimeout(holdTimer);
@@ -243,6 +292,13 @@ clearTimeout(holdTimer);
 canvas.addEventListener("pointerup",(e)=>{
 
 clearTimeout(holdTimer);
+
+if(draggingText){
+
+draggingText=null;
+return;
+
+}
 
 if(!moved) return;
 
@@ -328,25 +384,6 @@ redraw();
 
 function download(){
 
-let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
-
-lines.forEach(l=>{
-minX=Math.min(minX,l.x1,l.x2);
-minY=Math.min(minY,l.y1,l.y2);
-maxX=Math.max(maxX,l.x1,l.x2);
-maxY=Math.max(maxY,l.y1,l.y2);
-});
-
-texts.forEach(t=>{
-minX=Math.min(minX,t.x);
-minY=Math.min(minY,t.y);
-maxX=Math.max(maxX,t.x);
-maxY=Math.max(maxY,t.y);
-});
-
-let drawWidth=maxX-minX;
-let drawHeight=maxY-minY;
-
 const tempCanvas=document.createElement("canvas");
 const tempCtx=tempCanvas.getContext("2d");
 
@@ -356,10 +393,6 @@ tempCanvas.height=canvas.height;
 tempCtx.fillStyle="white";
 tempCtx.fillRect(0,0,tempCanvas.width,tempCanvas.height);
 
-let offsetX=(tempCanvas.width-drawWidth)/2-minX;
-let offsetY=(tempCanvas.height-drawHeight)/2-minY;
-
-tempCtx.translate(offsetX,offsetY);
 tempCtx.drawImage(canvas,0,0);
 
 const link=document.createElement("a");

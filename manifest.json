@@ -3,9 +3,11 @@
   "short_name": "Planta",
   "start_url": "index.html",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#222222",
   "theme_color": "#4CAF50",
-  "orientation": "portrait",
+  "description": "Aplicativo para desenhar plantas de casas de forma simples e rápida.",
+  "id": "/planta-facil",
   "icons": [
     {
       "src": "icon-192.png",
@@ -18,11 +20,5 @@
       "type": "image/png"
     }
   ],
-  "description": "Aplicativo para desenhar plantas de casas de forma simples e rápida.",
-  "id": "/planta-facil",
-  "dir": "auto",
-  "lang": "pt",
-  "categories": [
-    "business"
-  ]
+  "prefer_related_applications": false
 }
